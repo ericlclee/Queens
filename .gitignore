@@ -1,3 +1,9 @@
-#Saved Files
+#Caching folder
 Saved Games/
 Saved Videos/
+
+#Python bytecode files
+*.pyc
+
+#All test notebooks
+*.ipynb

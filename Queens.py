@@ -13,6 +13,7 @@ import datetime
 import os
 import time
 import pytz
+from pathlib import Path
 
 class Cell:
     def __init__(self, id, color, row, column):
@@ -31,6 +32,7 @@ class Board:
         self.selected = []
         self.eliminated = []
         self.colors = set([cell.color for cell in self.available])
+        self.grid_size = int(len(grid) ** 0.5)
 
     def color_counts(self):
         color_counts = defaultdict(int)
@@ -40,31 +42,52 @@ class Board:
 
         return color_counts
     
+    def calculate_constraint_heuristic(self, selected_cell):
+        colors_constrained = defaultdict(int)
+        color_counts = defaultdict(int)
+        for cell in self.available:
+            color_counts[cell.color] += 1
+            if cell.color == selected_cell.color:
+                continue
+            elif cell.row == selected_cell.row or cell.column == selected_cell.column:
+                colors_constrained[cell.color] += 1
+            elif (cell.row, cell.column) in [
+                (selected_cell.row+1, selected_cell.column+1), 
+                (selected_cell.row+1, selected_cell.column-1), 
+                (selected_cell.row-1, selected_cell.column+1), 
+                (selected_cell.row-1, selected_cell.column-1)
+                ]:
+                colors_constrained[cell.color] += 1
+        score = 0
+
+        ####### proportion of group constrained #######
+        # for color, count in colors_constrained.items():
+        #     score += count/color_counts[color]
+
+        ####### total number of cells constrained #######
+        score += sum(colors_constrained.values())
+        
+        return score
+    
     def get_priority_queue(self):
         color_counts = self.color_counts()
         min_count = min(color_counts.values())
+        candidate_cells = []
         for color, count in color_counts.items():
             if count == min_count:
-                best_color = color
+                for cell in self.available:
+                    if cell.color == color:
+                        candidate_cells.append(cell)
 
-        search_cells = []
-        for cell in self.available:
-            if cell.color == best_color:
-                search_cells.append(cell)
-        
-        row_counts = defaultdict(int)
-        column_counts = defaultdict(int)
-        for cell in search_cells:
-            row_counts[str(cell.row)] += 1
-            column_counts[str(cell.column)] += 1
-        
         queue = []
-        for cell in search_cells:
-            priority = row_counts[str(cell.row)]
-            priority += column_counts[str(cell.column)]
-            queue.append((cell, priority))
-        
+        for cell in candidate_cells:
+            score = self.calculate_constraint_heuristic(cell)
+            queue.append((cell, score))
+
         queue = sorted(queue, key=lambda x: x[1], reverse=False)
+        selected_color = queue[0][0].color
+        queue = [(cell, score) for cell, score in queue if cell.color == selected_color]
+        
         return queue
     
     def copy(self):
@@ -139,9 +162,10 @@ class Board:
         plt.show()
 
 class Solver():
-    def __init__(self):
+    def __init__(self, date = None):
         self.move_history = []
         self.solution = None
+        self.date = date
         
     def solve(self, board, history = False):
         e_colors = set([cell.color for cell in board.eliminated])
@@ -169,7 +193,7 @@ class Solver():
                 return new_board, True
         return new_board, False
     
-    def draw_solution(self, scale = 3, margin = 0.5, interval = 50):
+    def draw_solution(self, scale = 3, margin = 0.5, interval = 50, save = False):
         color_map = {
             "Lime Yellow": "#E8E15A",     
             "Pastel Green": "#A8D8B9",    
@@ -219,26 +243,46 @@ class Solver():
 
         ani = animation.FuncAnimation(fig, update, frames = range(len(self.move_history)*2), interval=interval, repeat = False)
         pacific_tz = pytz.timezone('America/Los_Angeles')
-        today = datetime.datetime.now(pytz.utc).astimezone(pacific_tz)
-        today = datetime.datetime.strftime(today, '%Y%m%d')
-        os.makedirs('Saved Videos', exist_ok=True)
-        ani.save(f"Saved Videos/Queens_Solve_{today}.gif", writer="pillow")
+        
+        if save:
+            if self.date:
+                date = self.date
+            else:
+                date = datetime.datetime.now(pytz.utc).astimezone(pacific_tz)
+                date = datetime.datetime.strftime(date, '%Y%m%d')
+            file_dir = Path(__file__).parent
+            output_dir = file_dir / "Saved Videos"
+            output_dir.mkdir(exist_ok=True)
+            file_output = output_dir / f'Queens_Solve_{date}.gif'
+            ani.save(file_output, writer="pillow")
+        
         plt.show()
 
 class Scraper():
-    def __init__(self):
+    def __init__(self, date = None):
+        self.date = date
         pass
 
-    def get_queens_grid(headless = True):
-        pacific_tz = pytz.timezone('America/Los_Angeles')
-        today = datetime.datetime.now(pytz.utc).astimezone(pacific_tz)
-        today = datetime.datetime.strftime(today, '%Y%m%d')
+    def get_queens_grid(self, headless = True):
+        if self.date:
+            date = self.date
+        else:
+            pacific_tz = pytz.timezone('America/Los_Angeles')
+            date = datetime.datetime.now(pytz.utc).astimezone(pacific_tz)
+            date = datetime.datetime.strftime(date, '%Y%m%d')
+        
+        file_dir = Path(__file__).parent
+        queens_grid_path = file_dir / f"Saved Games/Queens_Board_{date}.html"
 
-        if os.path.exists(f'Saved Games/QueensBoard_{today}.html'):
+        print(queens_grid_path)
+        if queens_grid_path.is_file():
             print('Existing File Found, Reading...')
-            with open(f'Saved Games/QueensBoard_{today}.html', 'r') as file:
+            with open(queens_grid_path, 'r') as file:
                 queens_grid_html = BeautifulSoup(file, 'html.parser')
         else:
+            if self.date:
+                raise Exception(FileNotFoundError)
+            
             chrome_options = Options()
             if headless:
                 chrome_options.add_argument("--headless")
@@ -264,8 +308,9 @@ class Scraper():
             queens_grid_html = BeautifulSoup(queens_grid_html, 'html.parser')
             
             print('Writing File...')
+
             os.makedirs('Saved Games', exist_ok=True)
-            with open(f'Saved Games/Queens_Board_{today}.html', 'w') as file:
+            with open(queens_grid_path, 'w') as file:
                 file.write(str(queens_grid_html))
             
             print('Exiting Chrome...')
