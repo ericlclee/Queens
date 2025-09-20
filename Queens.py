@@ -225,64 +225,63 @@ class Solver():
         ani.save(f"Saved Videos/Queens_Solve_{today}.gif", writer="pillow")
         plt.show()
 
-def scrape_queens_board():
-    pacific_tz = pytz.timezone('America/Los_Angeles')
-    today = datetime.datetime.now(pytz.utc).astimezone(pacific_tz)
-    today = datetime.datetime.strftime(today, '%Y%m%d')
+class Scraper():
+    def __init__(self):
+        pass
 
-    if os.path.exists(f'Saved Games/QueensBoard_{today}.html'):
-        print('Existing File Found, Reading...')
-        with open(f'Saved Games/QueensBoard_{today}.html', 'r') as file:
-            queens_grid_html = BeautifulSoup(file, 'html.parser')
-    else:
-        chrome_options = Options()
-        # chrome_options.add_argument("--headless")
-        # chrome_options.headless = True
+    def get_queens_grid(headless = True):
+        pacific_tz = pytz.timezone('America/Los_Angeles')
+        today = datetime.datetime.now(pytz.utc).astimezone(pacific_tz)
+        today = datetime.datetime.strftime(today, '%Y%m%d')
 
-        print('Starting Chrome...')
-        driver = webdriver.Chrome(chrome_options)
-        driver.get('https://www.linkedin.com/games/queens/')
-        
-        print('Loading Page...')
-        iframe = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.TAG_NAME, "iframe"))
-        )
-        driver.switch_to.frame(iframe)
-        driver.find_element(By.ID, "launch-footer-start-button").click()
-        
-        print('Loading LinkedIn Queens...')
-        queens_grid_html = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.ID, "queens-grid"))
-        ).get_attribute('innerHTML')
-        
-        print('Retrieved Queens Grid...')
-        queens_grid_html = BeautifulSoup(queens_grid_html, 'html.parser')
-        
-        print('Writing File...')
-        os.makedirs('Saved Games', exist_ok=True)
-        with open(f'Saved Games/Queens_Board_{today}.html', 'w') as file:
-            file.write(str(queens_grid_html))
-        
-        print('Exiting Chrome...')
-        driver.quit()
-    
-    queens_grid = []
-    id = 0
-    for div in queens_grid_html.find_all('div'):
-        label = div.get('aria-label')
-        if label is None:
-            continue
-        matches = re.match("^.*color (?P<color>[A-Za-z ]+), row (?P<row>[0-9]+), column (?P<column>[0-9]+).*$", label)
-        color = matches['color']
-        row = int(matches['row'])
-        column = int(matches['column'])
-        queens_grid.append(Cell(id, color, row, column))
-        id += 1
+        if os.path.exists(f'Saved Games/QueensBoard_{today}.html'):
+            print('Existing File Found, Reading...')
+            with open(f'Saved Games/QueensBoard_{today}.html', 'r') as file:
+                queens_grid_html = BeautifulSoup(file, 'html.parser')
+        else:
+            chrome_options = Options()
+            if headless:
+                chrome_options.add_argument("--headless")
+                chrome_options.headless = True
 
-    return queens_grid
+            print('Starting Chrome...')
+            driver = webdriver.Chrome(chrome_options)
+            driver.get('https://www.linkedin.com/games/queens/')
+            
+            print('Loading Page...')
+            iframe = WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.TAG_NAME, "iframe"))
+            )
+            driver.switch_to.frame(iframe)
+            driver.find_element(By.ID, "launch-footer-start-button").click()
+            
+            print('Loading LinkedIn Queens...')
+            queens_grid_html = WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.ID, "queens-grid"))
+            ).get_attribute('innerHTML')
+            
+            print('Retrieved Queens Grid...')
+            queens_grid_html = BeautifulSoup(queens_grid_html, 'html.parser')
+            
+            print('Writing File...')
+            os.makedirs('Saved Games', exist_ok=True)
+            with open(f'Saved Games/Queens_Board_{today}.html', 'w') as file:
+                file.write(str(queens_grid_html))
+            
+            print('Exiting Chrome...')
+            driver.quit()
+        
+        queens_grid = []
+        id = 0
+        for div in queens_grid_html.find_all('div'):
+            label = div.get('aria-label')
+            if label is None:
+                continue
+            matches = re.match("^.*color (?P<color>[A-Za-z ]+), row (?P<row>[0-9]+), column (?P<column>[0-9]+).*$", label)
+            color = matches['color']
+            row = int(matches['row'])
+            column = int(matches['column'])
+            queens_grid.append(Cell(id, color, row, column))
+            id += 1
 
-if __name__ == '__main__':
-    queens_grid = scrape_queens_board()
-    queens_solver = Solver()
-    solved_board, solution = queens_solver.solve(Board(queens_grid), history=True)
-    queens_solver.draw_solution(scale = 3, interval=50)
+        return queens_grid
