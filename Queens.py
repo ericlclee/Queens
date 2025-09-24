@@ -213,17 +213,17 @@ class Board:
     
     def display(self, scale = 3, margin = 0.5):
         color_map = {
-            "Lime Yellow": "#E8E15A",     
-            "Pastel Green": "#A8D8B9",    
-            "Lavender": "#B8A6E1",        
-            "Peach Orange": "#FF9B85",    
-            "Rose Pink": "#F1A1C4",       
-            "Soft Blue": "#77B9D7",       
-            "Muted Teal": "#4C8C8C",      
-            "Vibrant Coral": "#F36C56",     
-            "Light Gray": "#D3D3D3",        
-            "Warm Beige": "#F2E2B1",        
-            "Bright Cyan": "#4FB0B7"
+            "Lime Yellow": "#e6f388",     
+            "Pastel Green": "#b3dfa0",    
+            "Lavender": "#c387e0",        
+            "Peach Orange": "#ffc992",    
+            "Rose Pink": "#dfa0bf",       
+            "Soft Blue": "#96beff",       
+            "Muted Teal": "#a3d2d8",      
+            "Vibrant Coral": "#ff7b60",     
+            "Light Gray": "#dfdfdf",        
+            "Warm Beige": "#b9b29e",        
+            "Bright Cyan": "#62efea"        
         }
         fig, ax = plt.subplots()
         ax.set_xticks([])
@@ -321,17 +321,17 @@ class Solver():
     
     def draw_solution(self, scale = 3, margin = 0.5, interval = 50, save = False):
         color_map = {
-            "Lime Yellow": "#E8E15A",     
-            "Pastel Green": "#A8D8B9",    
-            "Lavender": "#B8A6E1",        
-            "Peach Orange": "#FF9B85",    
-            "Rose Pink": "#F1A1C4",       
-            "Soft Blue": "#77B9D7",       
-            "Muted Teal": "#4C8C8C",      
-            "Vibrant Coral": "#F36C56",     
-            "Light Gray": "#D3D3D3",        
-            "Warm Beige": "#F2E2B1",        
-            "Bright Cyan": "#4FB0B7"        
+            "Lime Yellow": "#e6f388",     
+            "Pastel Green": "#b3dfa0",    
+            "Lavender": "#c387e0",        
+            "Peach Orange": "#ffc992",    
+            "Rose Pink": "#dfa0bf",       
+            "Soft Blue": "#96beff",       
+            "Muted Teal": "#a3d2d8",      
+            "Vibrant Coral": "#ff7b60",     
+            "Light Gray": "#dfdfdf",        
+            "Warm Beige": "#b9b29e",        
+            "Bright Cyan": "#62efea"        
         }
         def draw_board(ax, move_history, move_number):            
             ax.cla()
@@ -344,7 +344,7 @@ class Solver():
             for spine in ax.spines.values():
                 spine.set_visible(False)
 
-            alpha = 0.3 if (move_history[move_number]['status'] == 3) else 1
+            alpha = 0.4 if (move_history[move_number]['status'] == 3) else 1
             for cell in self.solution_board.cells:
                 ax.add_patch(plt.Rectangle((cell.column * scale, cell.row * scale),1 * scale, 1 * scale, facecolor=color_map[cell.color], edgecolor='black',linewidth=3 * scale/4, alpha=alpha))
 
@@ -487,9 +487,8 @@ class Scraper():
         return queens_cells
 
 if __name__ == '__main__':
-    queens_scraper = Scraper(date = None)
+    queens_scraper = Scraper(date = '20250923')
     queens_cells = queens_scraper.get_queens_cells(headless=True)
-    queens_solver = Solver(date = None)
+    queens_solver = Solver(date = '20250923')
     solved_board, solution = queens_solver.backtrack(Board({'available': queens_cells, 'selected': set(), 'eliminated': set()}), history=True)
     queens_solver.draw_solution(interval=175, save=True)
-    print([(len(move['selected']), len(move['eliminated'])) for move in queens_solver.move_history])
