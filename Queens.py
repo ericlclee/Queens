@@ -448,15 +448,15 @@ class Scraper():
             driver.get('https://www.linkedin.com/games/queens/')
             
             print('Loading Page...')
-            iframe = WebDriverWait(driver, 20).until(
+            iframe = WebDriverWait(driver, 60).until(
                 EC.presence_of_element_located((By.TAG_NAME, "iframe"))
             )
             driver.switch_to.frame(iframe)
             driver.find_element(By.ID, "launch-footer-start-button").click()
             
             print('Loading LinkedIn Queens...')
-            queens_cells_html = WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located((By.ID, "queens-cells"))
+            queens_cells_html = WebDriverWait(driver, 60).until(
+                EC.presence_of_element_located((By.ID, "queens-grid"))
             ).get_attribute('innerHTML')
             
             print('Retrieved Queens cells...')
@@ -488,7 +488,7 @@ class Scraper():
 
 if __name__ == '__main__':
     queens_scraper = Scraper(date = None)
-    queens_cells = queens_scraper.get_queens_cells(headless=False)
+    queens_cells = queens_scraper.get_queens_cells(headless=True)
     queens_solver = Solver(date = None)
     solved_board, solution = queens_solver.backtrack(Board({'available': queens_cells, 'selected': set(), 'eliminated': set()}), history=True)
     queens_solver.draw_solution(interval=175, save=True)
